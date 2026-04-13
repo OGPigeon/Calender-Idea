@@ -15,15 +15,15 @@ class System:
                 return {"event": event["event"], "solid": event["solid"]}
         raise ValueError(f"No event found for date: {date}")
 
-    def is_solid(self, date: datetime, stime: datetime) -> bool:
-        """check if the that date + time has a solid event or not"""
+    def is_solid(self, date: str) -> bool:
+        """Return True if any locked/solid event exists on the given date."""
         for evt in self.events:
-            if evt["date"] == date and evt["stime"] == stime and evt["solid"]:
+            if evt["date"] == date and evt["solid"]:
                 return True
         return False
 
-    def is_overlapped(self, stime: str) -> bool:
-        """check if the given start time conflicts with an existing event's time"""
+    def is_overlapped(self, date: str, stime: str) -> bool:
+        """Return True if an event on the same date shares the given start time."""
         if not stime:
             return False
         try:
@@ -31,6 +31,6 @@ class System:
         except ValueError:
             return False
         for evt in self.events:
-            if evt.get("stime") == normalized or evt.get("etime") == normalized:
+            if evt["date"] == date and (evt.get("stime") == normalized or evt.get("etime") == normalized):
                 return True
         return False
