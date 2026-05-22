@@ -16,6 +16,10 @@ import json
 _DATA_FOLDER = os.path.join(os.path.dirname(__file__), "..", "Data")
 
 
+def _get_data_folder() -> str:
+    return os.environ.get("DATA_FOLDER", _DATA_FOLDER)
+
+
 class Events:
     """A collection of events, loaded from a JSON file."""
 
@@ -33,7 +37,7 @@ class Events:
 
     def _create_event(self) -> None:
         """Create a dict representation of the event."""
-        file_path = os.path.join(_DATA_FOLDER, "events.json")
+        file_path = os.path.join(_get_data_folder(), "events.json")
         new_event = {
             "date": self.date,
             "stime": self.stime.strftime("%H:%M") if self.stime else None,
@@ -51,7 +55,7 @@ class Events:
 
     def _delete_event(self, index: int):
         "Deletes the event at the given index in the sorted events list."
-        file_path = os.path.join(_DATA_FOLDER, "events.json")
+        file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
         sorted_data = sorted(data, key=lambda e: e["date"])
         target = sorted_data[index]
@@ -61,7 +65,7 @@ class Events:
 
     def _load_events(self) -> List[Dict[str, Any]]:
         """Load and normalize events from the JSON file."""
-        file_path = os.path.join(_DATA_FOLDER, "events.json")
+        file_path = os.path.join(_get_data_folder(), "events.json")
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         # Normalize to a list of event dicts
@@ -80,7 +84,7 @@ class Events:
 
     def _edit_event(self, index: int, ndate: str = "", nstime: str = "", netime: str = "", nevent: str = "", nsolid: bool = False):
         """Edit an event by its index in the sorted events list."""
-        file_path = os.path.join(_DATA_FOLDER, "events.json")
+        file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
         sorted_data = sorted(data, key=lambda e: e["date"])
         target = sorted_data[index]

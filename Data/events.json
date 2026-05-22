@@ -5,5 +5,19 @@
     "etime": "02:13",
     "event": "Hi",
     "solid": true
+  },
+  {
+    "date": "2026-04-13",
+    "stime": "09:00",
+    "etime": "10:00",
+    "event": "NewEvent",
+    "solid": false
+  },
+  {
+    "date": "2026-04-14",
+    "stime": "11:00",
+    "etime": "12:00",
+    "event": "Second",
+    "solid": false
   }
 ]
