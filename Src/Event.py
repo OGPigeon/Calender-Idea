@@ -13,6 +13,8 @@ from typing import Any, Dict, List
 import os
 import json
 
+_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "..", "Data")
+
 
 class Events:
     """A collection of events, loaded from a JSON file."""
@@ -20,7 +22,8 @@ class Events:
     def __init__(self, date: str, stime: str, etime: str, event: str, solid: bool):
         self.stime = datetime.strptime(stime, "%H:%M") if stime else None
         self.etime = datetime.strptime(etime, "%H:%M") if etime else None
-        self.date = datetime.strptime(date, "%Y-%m-%d").date().isoformat() if date else None
+        self.date = datetime.strptime(
+            date, "%Y-%m-%d").date().isoformat() if date else None
         self.event = event
         self.solid = solid
 
@@ -30,8 +33,7 @@ class Events:
 
     def _create_event(self) -> None:
         """Create a dict representation of the event."""
-        data_folder = os.getenv("DATA_FOLDER", "Data")
-        file_path = os.path.join(data_folder, "events.json")
+        file_path = os.path.join(_DATA_FOLDER, "events.json")
         new_event = {
             "date": self.date,
             "stime": self.stime.strftime("%H:%M") if self.stime else None,
@@ -49,8 +51,7 @@ class Events:
 
     def _delete_event(self, index: int):
         "Deletes the event at the given index in the sorted events list."
-        data_folder = os.getenv("DATA_FOLDER", "Data")
-        file_path = os.path.join(data_folder, "events.json")
+        file_path = os.path.join(_DATA_FOLDER, "events.json")
         data = self._load_events()
         sorted_data = sorted(data, key=lambda e: e["date"])
         target = sorted_data[index]
@@ -58,11 +59,9 @@ class Events:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
-
     def _load_events(self) -> List[Dict[str, Any]]:
         """Load and normalize events from the JSON file."""
-        data_folder = os.getenv("DATA_FOLDER", "Data")
-        file_path = os.path.join(data_folder, "events.json")
+        file_path = os.path.join(_DATA_FOLDER, "events.json")
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         # Normalize to a list of event dicts
@@ -79,10 +78,9 @@ class Events:
             })
         return normalized_events
 
-    def _edit_event(self, index: int, ndate: str = None, nstime: str = None, netime: str = None, nevent: str = None, nsolid: bool = None):
+    def _edit_event(self, index: int, ndate: str = "", nstime: str = "", netime: str = "", nevent: str = "", nsolid: bool = False):
         """Edit an event by its index in the sorted events list."""
-        data_folder = os.getenv("DATA_FOLDER", "Data")
-        file_path = os.path.join(data_folder, "events.json")
+        file_path = os.path.join(_DATA_FOLDER, "events.json")
         data = self._load_events()
         sorted_data = sorted(data, key=lambda e: e["date"])
         target = sorted_data[index]
@@ -101,7 +99,6 @@ class Events:
                 break
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-
 
     def get_event(self, date: datetime, stime: datetime, etime: datetime) -> Dict[str, Any]:
         """Return event info for the given date, or raise ValueError if not found."""
