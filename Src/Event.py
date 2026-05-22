@@ -1,5 +1,4 @@
 """Utilities to load event data from the top-level `Data/` folder.
-
 Expected JSON: a file containing either a list of event objects or a single
 object. Each event will be normalized to a dict with keys:
   - `date` (str)
@@ -24,7 +23,7 @@ class Events:
         self.date = datetime.strptime(date, "%Y-%m-%d").date().isoformat() if date else None
         self.event = event
         self.solid = solid
-        
+
     def __str__(self):
         "returns event details in a readable format"
         return f"{self.date} - from {self.stime} to {self.etime} — {self.event} {'[LOCKED]' if self.solid else ''}"
@@ -47,23 +46,19 @@ class Events:
         data.append(new_event)
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-    
-    def _delete_event(self,date: datetime, stime: datetime, etime:datetime):
-        "Finds and deletes the event from json"
+
+    def _delete_event(self, index: int):
+        "Deletes the event at the given index in the sorted events list."
         data_folder = os.getenv("DATA_FOLDER", "Data")
         file_path = os.path.join(data_folder, "events.json")
-        new_data = self._load_events()
-        event = self.get_event(date, stime, etime)
-        new_data = [evt for evt in new_data if not (
-            evt["event"] == event["event"] and
-            evt["date"] == date and
-            evt["stime"] == stime and
-            evt["etime"] == etime
-        )]
+        data = self._load_events()
+        sorted_data = sorted(data, key=lambda e: e["date"])
+        target = sorted_data[index]
+        data = [evt for evt in data if evt != target]
         with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(new_data, f, indent=2)
-            
-    
+            json.dump(data, f, indent=2)
+
+
     def _load_events(self) -> List[Dict[str, Any]]:
         """Load and normalize events from the JSON file."""
         data_folder = os.getenv("DATA_FOLDER", "Data")
@@ -84,6 +79,30 @@ class Events:
             })
         return normalized_events
 
+    def _edit_event(self, index: int, ndate: str = None, nstime: str = None, netime: str = None, nevent: str = None, nsolid: bool = None):
+        """Edit an event by its index in the sorted events list."""
+        data_folder = os.getenv("DATA_FOLDER", "Data")
+        file_path = os.path.join(data_folder, "events.json")
+        data = self._load_events()
+        sorted_data = sorted(data, key=lambda e: e["date"])
+        target = sorted_data[index]
+        for i, evt in enumerate(data):
+            if evt == target:
+                if ndate is not None:
+                    data[i]["date"] = ndate
+                if nstime is not None:
+                    data[i]["stime"] = nstime
+                if netime is not None:
+                    data[i]["etime"] = netime
+                if nevent is not None:
+                    data[i]["event"] = nevent
+                if nsolid is not None:
+                    data[i]["solid"] = nsolid
+                break
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+
     def get_event(self, date: datetime, stime: datetime, etime: datetime) -> Dict[str, Any]:
         """Return event info for the given date, or raise ValueError if not found."""
         events = self._load_events()
@@ -91,4 +110,3 @@ class Events:
             if evt["date"] == date and evt["stime"] == stime and evt["etime"] == etime:
                 return {"event": evt["event"], "solid": evt["solid"]}
         raise ValueError(f"No event found for date: {date}")
-
