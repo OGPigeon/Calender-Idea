@@ -24,9 +24,11 @@ export default function DayView({ current, events, onSlotClick, onEventClick, se
     }
   }, []);
 
-  const dayEvts = filtered.filter(e => {
+  const allEvts = filtered.filter(e => {
     try { return isSameDay(parseISO(e.date), current); } catch { return false; }
   });
+  const alldayEvts = allEvts.filter(e => e.allday || !e.stime);
+  const dayEvts = allEvts.filter(e => !e.allday && e.stime);
 
   const today = isToday(current);
   const dowIdx = current.getDay();
@@ -48,6 +50,26 @@ export default function DayView({ current, events, onSlotClick, onEventClick, se
           {format(current, "d")}
         </div>
       </div>
+
+      {alldayEvts.length > 0 && (
+        <div className="day-allday-row">
+          <div className="week-allday-gutter">all-day</div>
+          <div className="day-allday-cell">
+            {alldayEvts.map((evt, j) => (
+              <div
+                key={j}
+                className="allday-pill"
+                style={{ background: getColor(evt) }}
+                onClick={e => { e.stopPropagation(); onEventClick(evt, e); }}
+                title={evt.event}
+              >
+                {evt.event}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="day-body" ref={bodyRef}>
         <div className="day-gutter">
           {HOURS.map(h => (

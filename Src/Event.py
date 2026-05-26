@@ -78,7 +78,9 @@ class Events:
                 "stime": event.get("stime", None),
                 "etime": event.get("etime", None),
                 "event": event.get("event", ""),
-                "solid": event.get("solid", False)
+                "solid": event.get("solid", False),
+                "allday": event.get("allday", False),
+                "color": event.get("color", "blue"),
             })
         return normalized_events
 

@@ -35,6 +35,7 @@ def create_event():
     event = body.get("event", "").strip()
     solid = bool(body.get("solid", False))
     color = body.get("color", "blue")
+    allday = bool(body.get("allday", False))
 
     if not date or not event:
         return jsonify({"error": "date and event are required"}), 400
@@ -54,12 +55,13 @@ def create_event():
 
     new_event._create_event()
 
-    # patch color into the last event
+    # patch color and allday into the last event
+    import json
     all_events = _load()
     for evt in all_events:
         if evt["date"] == date and evt["event"] == event and "color" not in evt:
             evt["color"] = color
-    import json
+            evt["allday"] = allday
     data_path = os.path.join(os.path.dirname(__file__), "..", "Data", "events.json")
     with open(data_path, "w", encoding="utf-8") as f:
         json.dump(all_events, f, indent=2)
@@ -84,8 +86,8 @@ def update_event(idx):
         nsolid=body.get("solid", False),
     )
 
-    # update color
-    if "color" in body:
+    # update color and allday
+    if "color" in body or "allday" in body:
         import json
         data_path = os.path.join(os.path.dirname(__file__), "..", "Data", "events.json")
         with open(data_path, "r", encoding="utf-8") as f:
@@ -94,7 +96,10 @@ def update_event(idx):
         target = updated[idx]
         for evt in raw:
             if evt.get("date") == target.get("date") and evt.get("event") == target.get("event"):
-                evt["color"] = body["color"]
+                if "color" in body:
+                    evt["color"] = body["color"]
+                if "allday" in body:
+                    evt["allday"] = bool(body["allday"])
                 break
         with open(data_path, "w", encoding="utf-8") as f:
             json.dump(raw, f, indent=2)

@@ -3,13 +3,12 @@ import { useRef, useEffect } from "react";
 import { getWeekDays, DAY_NAMES, HOURS, timeToMinutes } from "../utils/dateUtils";
 import { getColor } from "../utils/colors";
 
-const HOUR_H = 60; // px per hour
+const HOUR_H = 60;
 
 function NowLine() {
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
-  const top = (mins / 60) * HOUR_H;
-  return <div className="now-line" style={{ top }} />;
+  return <div className="now-line" style={{ top: (mins / 60) * HOUR_H }} />;
 }
 
 export default function WeekView({ current, events, onSlotClick, onEventClick, searchQuery }) {
@@ -19,7 +18,6 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
     ? events.filter(e => e.event.toLowerCase().includes(searchQuery.toLowerCase()))
     : events;
 
-  // Scroll to current hour on mount
   useEffect(() => {
     if (bodyRef.current) {
       const h = new Date().getHours();
@@ -32,6 +30,9 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
       try { return isSameDay(parseISO(e.date), day); } catch { return false; }
     });
 
+  const alldayForDay = (day) => eventsForDay(day).filter(e => e.allday || !e.stime);
+  const timedForDay = (day) => eventsForDay(day).filter(e => !e.allday && e.stime);
+
   function eventStyle(evt) {
     const sm = timeToMinutes(evt.stime);
     const em = timeToMinutes(evt.etime);
@@ -41,7 +42,7 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
     return { top, height: Math.max(height, 18), background: getColor(evt) };
   }
 
-  const todayIdx = days.findIndex(d => isToday(d));
+  const hasAnyAllday = days.some(d => alldayForDay(d).length > 0);
 
   return (
     <div className="week-view">
@@ -59,6 +60,28 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
           );
         })}
       </div>
+
+      {hasAnyAllday && (
+        <div className="week-allday-row">
+          <div className="week-allday-gutter">all-day</div>
+          {days.map((day, di) => (
+            <div key={di} className="week-allday-cell">
+              {alldayForDay(day).map((evt, j) => (
+                <div
+                  key={j}
+                  className="allday-pill"
+                  style={{ background: getColor(evt) }}
+                  onClick={e => { e.stopPropagation(); onEventClick(evt, e); }}
+                  title={evt.event}
+                >
+                  {evt.event}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="week-body" ref={bodyRef}>
         <div className="week-time-gutter">
           {HOURS.map(h => (
@@ -69,7 +92,7 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
         </div>
         <div className="week-cols">
           {days.map((day, di) => {
-            const dayEvts = eventsForDay(day);
+            const dayEvts = timedForDay(day);
             const today = isToday(day);
             return (
               <div key={di} className="week-col">
@@ -77,11 +100,7 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
                   <div
                     key={h}
                     className="week-hour-line"
-                    onClick={() => {
-                      const d = new Date(day);
-                      d.setHours(h, 0, 0, 0);
-                      onSlotClick(day, `${String(h).padStart(2, "0")}:00`);
-                    }}
+                    onClick={() => onSlotClick(day, `${String(h).padStart(2, "0")}:00`)}
                   />
                 ))}
                 {today && <NowLine />}

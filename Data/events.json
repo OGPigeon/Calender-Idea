@@ -3,14 +3,27 @@
     "date": "2025-01-17",
     "stime": "01:13",
     "etime": "02:13",
-    "event": "Hi",
-    "solid": true
+    "event": "Bday",
+    "solid": true,
+    "allday": false,
+    "color": "blue"
   },
   {
     "date": "2026-04-14",
     "stime": "11:00",
     "etime": "12:00",
     "event": "Second",
-    "solid": false
+    "solid": false,
+    "allday": false,
+    "color": "blue"
+  },
+  {
+    "date": "2026-05-26",
+    "stime": null,
+    "etime": null,
+    "event": "Hi",
+    "solid": false,
+    "allday": false,
+    "color": "blue"
   }
 ]

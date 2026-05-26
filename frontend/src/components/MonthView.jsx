@@ -2,7 +2,7 @@ import { format, isSameMonth, isSameDay, isToday, parseISO } from "date-fns";
 import { getMonthGrid, DAY_NAMES } from "../utils/dateUtils";
 import { getColor } from "../utils/colors";
 
-export default function MonthView({ current, selectedDate, events, onDayClick, onEventClick, searchQuery }) {
+export default function MonthView({ current, selectedDate, events, onDayClick, onDayDoubleClick, onEventClick, searchQuery }) {
   const grid = getMonthGrid(current);
   const filtered = searchQuery
     ? events.filter(e => e.event.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -41,7 +41,7 @@ export default function MonthView({ current, selectedDate, events, onDayClick, o
           const hidden = dayEvts.length - MAX;
 
           return (
-            <div key={i} className={cls} onClick={() => onDayClick(day)}>
+            <div key={i} className={cls} onClick={() => onDayClick(day)} onDoubleClick={() => onDayDoubleClick(day)}>
               <div className={numCls}>{format(day, "d")}</div>
               {visible.map((evt, j) => (
                 <div

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState } from "react";
+import { format, addMonths, subMonths, isSameDay, isSameMonth, isToday, parseISO } from "date-fns";
+import { getMonthGrid, DAY_NAMES } from "../utils/dateUtils";
 
 const COLORS = [
   { id: "red", hex: "#ff3b30" },
@@ -24,6 +25,42 @@ function Toggle({ on, onChange, label }) {
   );
 }
 
+function DatePicker({ value, onChange }) {
+  const tryParse = (v) => { try { return v ? parseISO(v) : new Date(); } catch { return new Date(); } };
+  const [viewMonth, setViewMonth] = useState(() => tryParse(value));
+  const selected = tryParse(value);
+  const grid = getMonthGrid(viewMonth);
+
+  return (
+    <div className="date-picker">
+      <div className="date-picker-header">
+        <button type="button" onClick={() => setViewMonth(m => subMonths(m, 1))}>‹</button>
+        <span>{format(viewMonth, "MMMM yyyy")}</span>
+        <button type="button" onClick={() => setViewMonth(m => addMonths(m, 1))}>›</button>
+      </div>
+      <div className="date-picker-grid">
+        {DAY_NAMES.map(d => (
+          <div key={d} className="date-picker-dayname">{d[0]}</div>
+        ))}
+        {grid.map((day, i) => {
+          const other = !isSameMonth(day, viewMonth);
+          const today = isToday(day);
+          const sel = value && isSameDay(day, selected);
+          let cls = "date-picker-day";
+          if (other) cls += " other-month";
+          if (today && !sel) cls += " today";
+          if (sel) cls += " selected";
+          return (
+            <div key={i} className={cls} onClick={() => onChange(format(day, "yyyy-MM-dd"))}>
+              {format(day, "d")}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function EventModal({ initial, onSave, onDelete, onClose }) {
   const isEdit = !!initial;
   const [form, setForm] = useState({
@@ -32,6 +69,7 @@ export default function EventModal({ initial, onSave, onDelete, onClose }) {
     etime: initial?.etime ?? "",
     event: initial?.event ?? "",
     solid: initial?.solid ?? false,
+    allday: initial?.allday ?? (initial?.stime ? false : true),
     color: initial?.color ?? "blue",
   });
   const [error, setError] = useState("");
@@ -43,19 +81,19 @@ export default function EventModal({ initial, onSave, onDelete, onClose }) {
       setError("Date and event name are required.");
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
-      setError("Date must be YYYY-MM-DD.");
-      return;
+    if (!form.allday) {
+      if (form.stime && !/^\d{2}:\d{2}$/.test(form.stime)) {
+        setError("Start time must be HH:MM.");
+        return;
+      }
+      if (form.etime && !/^\d{2}:\d{2}$/.test(form.etime)) {
+        setError("End time must be HH:MM.");
+        return;
+      }
     }
-    if (form.stime && !/^\d{2}:\d{2}$/.test(form.stime)) {
-      setError("Start time must be HH:MM.");
-      return;
-    }
-    if (form.etime && !/^\d{2}:\d{2}$/.test(form.etime)) {
-      setError("End time must be HH:MM.");
-      return;
-    }
-    onSave(form);
+    const data = { ...form };
+    if (form.allday) { data.stime = ""; data.etime = ""; }
+    onSave(data);
   };
 
   return (
@@ -83,34 +121,33 @@ export default function EventModal({ initial, onSave, onDelete, onClose }) {
 
           <div className="modal-field">
             <label className="modal-label">Date</label>
-            <input
-              className="modal-input"
-              type="date"
-              value={form.date}
-              onChange={e => set("date", e.target.value)}
-            />
+            <DatePicker value={form.date} onChange={v => set("date", v)} />
           </div>
 
-          <div className="modal-row">
-            <div className="modal-field">
-              <label className="modal-label">Start Time</label>
-              <input
-                className="modal-input"
-                type="time"
-                value={form.stime}
-                onChange={e => set("stime", e.target.value)}
-              />
+          <Toggle on={form.allday} onChange={v => set("allday", v)} label="All day" />
+
+          {!form.allday && (
+            <div className="modal-row">
+              <div className="modal-field">
+                <label className="modal-label">Start Time</label>
+                <input
+                  className="modal-input"
+                  type="time"
+                  value={form.stime}
+                  onChange={e => set("stime", e.target.value)}
+                />
+              </div>
+              <div className="modal-field">
+                <label className="modal-label">End Time</label>
+                <input
+                  className="modal-input"
+                  type="time"
+                  value={form.etime}
+                  onChange={e => set("etime", e.target.value)}
+                />
+              </div>
             </div>
-            <div className="modal-field">
-              <label className="modal-label">End Time</label>
-              <input
-                className="modal-input"
-                type="time"
-                value={form.etime}
-                onChange={e => set("etime", e.target.value)}
-              />
-            </div>
-          </div>
+          )}
 
           <div className="modal-field">
             <label className="modal-label">Color</label>
