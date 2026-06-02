@@ -1,6 +1,6 @@
 # Calendar App
 
-A personal calendar application with a React frontend and a Python/Flask backend. Events are stored locally in a JSON file.
+A personal calendar application with a React frontend and a Python/Flask backend. Events are stored in a JSON file that can be synced across devices via GitHub.
 
 ## Features
 
@@ -14,6 +14,7 @@ A personal calendar application with a React frontend and a Python/Flask backend
 - **Mini calendar sidebar:** Click any date to jump directly to it
 - **Dark mode:** Toggle with the moon/sun icon; preference is saved across sessions
 - **Keyboard shortcuts:** `←` / `→` to navigate, `T` to jump to today
+- **GitHub sync:** Push and pull `Data/events.json` to/from a GitHub repo so your data is always up to date across devices
 
 ## Tech Stack
 
@@ -28,10 +29,11 @@ A personal calendar application with a React frontend and a Python/Flask backend
 ```
 .
 ├── Data/
-│   └── events.json          # Event storage
+│   └── events.json          # Event storage (synced via GitHub)
 ├── Src/
 │   ├── Event.py             # Event model — CRUD operations on the JSON file
 │   ├── System.py            # Business logic — solid/overlap checks
+│   ├── sync.py              # Git pull/push logic for cross-device sync
 │   ├── api.py               # Flask REST API
 │   └── Main.py              # CLI entry point
 ├── frontend/
@@ -39,8 +41,9 @@ A personal calendar application with a React frontend and a Python/Flask backend
 │       ├── App.jsx           # Root component, state, routing between views
 │       ├── api.js            # Axios calls to the Flask API
 │       └── components/       # DayView, WeekView, MonthView, YearView, EventModal, …
-└── Tests/
-    └── test_system_event.py  # Pytest test suite
+├── Tests/
+│   └── test_system_event.py  # Pytest test suite
+└── requirements.txt
 ```
 
 ## Getting Started
@@ -49,17 +52,23 @@ A personal calendar application with a React frontend and a Python/Flask backend
 
 - Python 3.10+
 - Node.js 18+
+- git (required for cross-device sync)
 
-### Backend
+### 1. Install Python dependencies
 
 ```bash
-pip install flask flask-cors
+pip install -r requirements.txt
+```
+
+### 2. Start the backend
+
+```bash
 python Src/api.py
 ```
 
 The API runs on `http://localhost:5001`.
 
-### Frontend
+### 3. Start the frontend
 
 ```bash
 cd frontend
@@ -69,16 +78,42 @@ npm run dev
 
 The dev server runs on `http://localhost:5173` and proxies API calls to port 5001.
 
+## Cross-Device Sync
+
+Events are stored in `Data/events.json` and can be synced to a private GitHub repository so your data stays consistent across all your devices.
+
+### First-time setup
+
+```bash
+git remote add origin https://github.com/your-username/your-repo.git
+git push -u origin main
+```
+
+### Syncing
+
+Use the `↓` and `↑` buttons in the toolbar:
+
+| Button | Action |
+|--------|--------|
+| `↓` | **Pull** — fetches the latest events from GitHub and refreshes the calendar |
+| `↑` | **Push** — commits the current `events.json` with a timestamp and pushes to GitHub |
+
+On a new device, clone the repo, run the app, and hit `↓` to get the latest data.
+
+> **Note:** Sync requires git credentials to be configured (SSH key or a stored HTTPS token). If push fails, check that your remote is set up and you have write access.
+
 ## API Reference
 
-| Method | Endpoint                  | Description                              |
-|--------|---------------------------|------------------------------------------|
-| GET    | `/api/events`             | Return all events, sorted by date/time   |
-| POST   | `/api/events`             | Create a new event                       |
-| PUT    | `/api/events/<idx>`       | Update an event by its sorted index      |
-| DELETE | `/api/events/<idx>`       | Delete an event by its sorted index      |
-| GET    | `/api/check-solid?date=`  | Check if a locked event exists on a date |
-| GET    | `/api/check-overlap?date=&stime=` | Check for a time conflict       |
+| Method | Endpoint                          | Description                              |
+|--------|-----------------------------------|------------------------------------------|
+| GET    | `/api/events`                     | Return all events, sorted by date/time   |
+| POST   | `/api/events`                     | Create a new event                       |
+| PUT    | `/api/events/<idx>`               | Update an event by its sorted index      |
+| DELETE | `/api/events/<idx>`               | Delete an event by its sorted index      |
+| GET    | `/api/check-solid?date=`          | Check if a locked event exists on a date |
+| GET    | `/api/check-overlap?date=&stime=` | Check for a time conflict                |
+| POST   | `/api/sync/pull`                  | Pull latest events from GitHub           |
+| POST   | `/api/sync/push`                  | Commit and push events to GitHub         |
 
 ### Event schema
 

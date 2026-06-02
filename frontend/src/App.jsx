@@ -8,7 +8,7 @@ import DayView from "./components/DayView";
 import YearView from "./components/YearView";
 import EventModal from "./components/EventModal";
 import EventPopover from "./components/EventPopover";
-import { fetchEvents, createEvent, updateEvent, deleteEvent } from "./api";
+import { fetchEvents, createEvent, updateEvent, deleteEvent, syncPull, syncPush } from "./api";
 
 function Toast({ msg, onDone }) {
   useEffect(() => {
@@ -181,6 +181,14 @@ export default function App() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             )}
           </button>
+          <button className="toolbar-sync" title="Pull from GitHub" onClick={async () => {
+            try { const r = await syncPull(); showToast(r.message); await load(); }
+            catch { showToast("Pull failed"); }
+          }}>↓</button>
+          <button className="toolbar-sync" title="Push to GitHub" onClick={async () => {
+            try { const r = await syncPush(); showToast(r.message); }
+            catch { showToast("Push failed"); }
+          }}>↑</button>
           <button className="toolbar-add" title="New Event" onClick={() => setModal({
             type: "new",
             initial: { date: format(selectedDate || today, "yyyy-MM-dd"), stime: "", etime: "", event: "", solid: false, allday: false, color: "blue" }

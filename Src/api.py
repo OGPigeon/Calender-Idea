@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from Event import Events
 from System import System
+import sync
 
 app = Flask(__name__)
 CORS(app)
@@ -107,6 +108,26 @@ def check_overlap():
     stime = request.args.get("stime", "")
     sys_obj = System(_load())
     return jsonify({"overlap": sys_obj.is_overlapped(date, stime)})
+
+
+@app.route("/api/sync/pull", methods=["POST"])
+def sync_pull():
+    """Pull the latest events.json from the remote GitHub repository."""
+    try:
+        msg = sync.pull()
+        return jsonify({"message": msg})
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/sync/push", methods=["POST"])
+def sync_push():
+    """Commit and push the current events.json to the remote GitHub repository."""
+    try:
+        msg = sync.push()
+        return jsonify({"message": msg})
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
