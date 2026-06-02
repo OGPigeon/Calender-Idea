@@ -88,7 +88,7 @@ export default function App() {
   const handleSlotClick = (day, time) => {
     setModal({
       type: "new",
-      initial: { date: format(day, "yyyy-MM-dd"), stime: time || "", etime: "", event: "", solid: false, color: "blue" }
+      initial: { date: format(day, "yyyy-MM-dd"), stime: time || "", etime: "", event: "", solid: false, allday: false, color: "blue" }
     });
   };
 
@@ -183,7 +183,7 @@ export default function App() {
           </button>
           <button className="toolbar-add" title="New Event" onClick={() => setModal({
             type: "new",
-            initial: { date: format(selectedDate || today, "yyyy-MM-dd"), stime: "", etime: "", event: "", solid: false, color: "blue" }
+            initial: { date: format(selectedDate || today, "yyyy-MM-dd"), stime: "", etime: "", event: "", solid: false, allday: false, color: "blue" }
           })}>+</button>
         </div>
 

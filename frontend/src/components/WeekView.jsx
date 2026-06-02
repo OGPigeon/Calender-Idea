@@ -86,7 +86,7 @@ export default function WeekView({ current, events, onSlotClick, onEventClick, s
         <div className="week-time-gutter">
           {HOURS.map(h => (
             <div key={h} className="week-hour-label">
-              {h === 0 ? "" : format(new Date(2000, 0, 1, h), "h a")}
+              {h === 0 ? "" : format(new Date(2000, 0, 1, h), "HH:00")}
             </div>
           ))}
         </div>

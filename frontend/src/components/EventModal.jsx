@@ -69,7 +69,7 @@ export default function EventModal({ initial, onSave, onDelete, onClose }) {
     etime: initial?.etime ?? "",
     event: initial?.event ?? "",
     solid: initial?.solid ?? false,
-    allday: initial?.allday ?? (initial?.stime ? false : true),
+    allday: initial ? (initial.allday ?? !initial.stime) : false,
     color: initial?.color ?? "blue",
   });
   const [error, setError] = useState("");

@@ -18,11 +18,11 @@
     "color": "blue"
   },
   {
-    "date": "2026-05-26",
-    "stime": null,
-    "etime": null,
-    "event": "Hi",
-    "solid": false,
+    "date": "2026-05-27",
+    "stime": "12:00",
+    "etime": "13:00",
+    "event": "TEst1",
+    "solid": true,
     "allday": false,
     "color": "blue"
   }

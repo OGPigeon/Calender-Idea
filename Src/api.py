@@ -28,6 +28,7 @@ def get_events():
 
 @app.route("/api/events", methods=["POST"])
 def create_event():
+    """Create a new event from the request body and save it."""
     body = request.json
     date = body.get("date", "").strip()
     stime = body.get("stime", "").strip()
@@ -53,24 +54,16 @@ def create_event():
 
     overlap = sys_obj.is_overlapped(date, stime) if stime else False
 
-    new_event._create_event()
+    new_event._create_event(color=color, allday=allday)
 
-    # patch color and allday into the last event
-    import json
-    all_events = _load()
-    for evt in all_events:
-        if evt["date"] == date and evt["event"] == event and "color" not in evt:
-            evt["color"] = color
-            evt["allday"] = allday
-    data_path = os.path.join(os.path.dirname(__file__), "..", "Data", "events.json")
-    with open(data_path, "w", encoding="utf-8") as f:
-        json.dump(all_events, f, indent=2)
-
-    return jsonify({"overlap": overlap, "event": _load()[-1]}), 201
+    all_events = _sorted(_load())
+    created = next((e for e in all_events if e["date"] == date and e["event"] == event), None)
+    return jsonify({"overlap": overlap, "event": created}), 201
 
 
 @app.route("/api/events/<int:idx>", methods=["PUT"])
 def update_event(idx):
+    """Update an existing event by its sorted index."""
     body = request.json
     events = _sorted(_load())
     if idx < 0 or idx >= len(events):
@@ -80,29 +73,13 @@ def update_event(idx):
     loader._edit_event(
         idx,
         ndate=body.get("date") or None,
-        nstime=body.get("stime") or None,
-        netime=body.get("etime") or None,
+        nstime=body["stime"] if "stime" in body else None,
+        netime=body["etime"] if "etime" in body else None,
         nevent=body.get("event") or None,
-        nsolid=body.get("solid", False),
+        nsolid=bool(body["solid"]) if "solid" in body else None,
+        ncolor=body["color"] if "color" in body else None,
+        nallday=bool(body["allday"]) if "allday" in body else None,
     )
-
-    # update color and allday
-    if "color" in body or "allday" in body:
-        import json
-        data_path = os.path.join(os.path.dirname(__file__), "..", "Data", "events.json")
-        with open(data_path, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        updated = _sorted(_load())
-        target = updated[idx]
-        for evt in raw:
-            if evt.get("date") == target.get("date") and evt.get("event") == target.get("event"):
-                if "color" in body:
-                    evt["color"] = body["color"]
-                if "allday" in body:
-                    evt["allday"] = bool(body["allday"])
-                break
-        with open(data_path, "w", encoding="utf-8") as f:
-            json.dump(raw, f, indent=2)
 
     return jsonify(_sorted(_load())[idx])
 

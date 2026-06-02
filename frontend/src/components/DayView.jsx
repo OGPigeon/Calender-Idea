@@ -74,7 +74,7 @@ export default function DayView({ current, events, onSlotClick, onEventClick, se
         <div className="day-gutter">
           {HOURS.map(h => (
             <div key={h} className="week-hour-label">
-              {h === 0 ? "" : format(new Date(2000, 0, 1, h), "h a")}
+              {h === 0 ? "" : format(new Date(2000, 0, 1, h), "HH:00")}
             </div>
           ))}
         </div>

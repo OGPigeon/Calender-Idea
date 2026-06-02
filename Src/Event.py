@@ -35,15 +35,17 @@ class Events:
         "returns event details in a readable format"
         return f"{self.date} - from {self.stime} to {self.etime} — {self.event} {'[LOCKED]' if self.solid else ''}"
 
-    def _create_event(self) -> None:
-        """Create a dict representation of the event."""
+    def _create_event(self, color: str = "blue", allday: bool = False) -> None:
+        """Save this event to the JSON file, including color and allday."""
         file_path = os.path.join(_get_data_folder(), "events.json")
         new_event = {
             "date": self.date,
             "stime": self.stime.strftime("%H:%M") if self.stime else None,
             "etime": self.etime.strftime("%H:%M") if self.etime else None,
             "event": self.event,
-            "solid": self.solid
+            "solid": self.solid,
+            "color": color,
+            "allday": allday,
         }
         if os.path.exists(file_path):
             data = self._load_events()
@@ -53,11 +55,11 @@ class Events:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
-    def _delete_event(self, index: int):
-        "Deletes the event at the given index in the sorted events list."
+    def _delete_event(self, index: int) -> None:
+        """Delete the event at the given index in the sorted events list."""
         file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
-        sorted_data = sorted(data, key=lambda e: e["date"])
+        sorted_data = sorted(data, key=lambda e: (e["date"], e.get("stime") or ""))
         target = sorted_data[index]
         data = [evt for evt in data if evt != target]
         with open(file_path, "w", encoding="utf-8") as f:
@@ -75,33 +77,37 @@ class Events:
         for event in data:
             normalized_events.append({
                 "date": event.get("date", ""),
-                "stime": event.get("stime", None),
-                "etime": event.get("etime", None),
+                "stime": event.get("stime"),
+                "etime": event.get("etime"),
                 "event": event.get("event", ""),
                 "solid": event.get("solid", False),
                 "allday": event.get("allday", False),
-                "color": event.get("color", "blue"),
+                "color": event.get("color"),
             })
         return normalized_events
 
-    def _edit_event(self, index: int, ndate: str = "", nstime: str = "", netime: str = "", nevent: str = "", nsolid: bool = False):
-        """Edit an event by its index in the sorted events list."""
+    def _edit_event(self, index: int, ndate=None, nstime=None, netime=None, nevent=None, nsolid=None, ncolor=None, nallday=None) -> None:
+        """Edit the event at the given sorted index. Only fields passed as non-None are updated."""
         file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
-        sorted_data = sorted(data, key=lambda e: e["date"])
+        sorted_data = sorted(data, key=lambda e: (e["date"], e.get("stime") or ""))
         target = sorted_data[index]
         for i, evt in enumerate(data):
             if evt == target:
                 if ndate is not None:
                     data[i]["date"] = ndate
                 if nstime is not None:
-                    data[i]["stime"] = nstime
+                    data[i]["stime"] = nstime 
                 if netime is not None:
                     data[i]["etime"] = netime
                 if nevent is not None:
                     data[i]["event"] = nevent
                 if nsolid is not None:
                     data[i]["solid"] = nsolid
+                if ncolor is not None:
+                    data[i]["color"] = ncolor
+                if nallday is not None:
+                    data[i]["allday"] = nallday
                 break
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
