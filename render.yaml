@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: calendar-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir Src api:app
+    envVars:
+      - key: DATABASE_URL
+        sync: postgresql://neondb_owner:npg_wG2lfZSmiz8q@ep-flat-field-apce8wrp-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require         # paste your Neon connection string here in the Render dashboard
+      - key: ALLOWED_ORIGINS
+        sync: https://calender-idea.vercel.app      # paste your Vercel frontend URL here (e.g. https://my-calendar.vercel.app)

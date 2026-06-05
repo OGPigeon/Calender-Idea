@@ -3,6 +3,9 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from Event import Events
@@ -10,7 +13,8 @@ from System import System
 import sync
 
 app = Flask(__name__)
-CORS(app)
+_origins = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+CORS(app, origins=_origins)
 
 
 def _load():

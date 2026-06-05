@@ -1,0 +1,13 @@
+{
+  "appId": "com.mycalendar.app",
+  "appName": "My Calendar",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

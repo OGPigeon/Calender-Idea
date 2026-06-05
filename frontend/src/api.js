@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = "/api";
+const BASE = (import.meta.env.VITE_API_URL || "") + "/api";
 
 export const fetchEvents = () => axios.get(`${BASE}/events`).then(r => r.data);
 

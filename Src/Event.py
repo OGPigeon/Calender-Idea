@@ -14,10 +14,24 @@ import os
 import json
 
 _DATA_FOLDER = os.path.join(os.path.dirname(__file__), "..", "Data")
+_db_initialized = False
 
 
 def _get_data_folder() -> str:
+    """Return the data folder path from env or default."""
     return os.environ.get("DATA_FOLDER", _DATA_FOLDER)
+
+
+def _use_db() -> bool:
+    """Return True when DATABASE_URL is set, initialising the table on first call."""
+    global _db_initialized
+    if os.environ.get("DATABASE_URL"):
+        if not _db_initialized:
+            import db
+            db.init_db()
+            _db_initialized = True
+        return True
+    return False
 
 
 class Events:
@@ -36,27 +50,34 @@ class Events:
         return f"{self.date} - from {self.stime} to {self.etime} — {self.event} {'[LOCKED]' if self.solid else ''}"
 
     def _create_event(self, color: str = "blue", allday: bool = False) -> None:
-        """Save this event to the JSON file, including color and allday."""
+        """Save this event to the database or JSON file."""
+        stime_str = self.stime.strftime("%H:%M") if self.stime else None
+        etime_str = self.etime.strftime("%H:%M") if self.etime else None
+        if _use_db():
+            import db
+            db.create_event(self.date, stime_str, etime_str, self.event, self.solid, color, allday)
+            return
         file_path = os.path.join(_get_data_folder(), "events.json")
         new_event = {
             "date": self.date,
-            "stime": self.stime.strftime("%H:%M") if self.stime else None,
-            "etime": self.etime.strftime("%H:%M") if self.etime else None,
+            "stime": stime_str,
+            "etime": etime_str,
             "event": self.event,
             "solid": self.solid,
             "color": color,
             "allday": allday,
         }
-        if os.path.exists(file_path):
-            data = self._load_events()
-        else:
-            data = []
+        data = self._load_events() if os.path.exists(file_path) else []
         data.append(new_event)
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     def _delete_event(self, index: int) -> None:
-        """Delete the event at the given index in the sorted events list."""
+        """Delete the event at the given sorted index."""
+        if _use_db():
+            import db
+            db.delete_event(index)
+            return
         file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
         sorted_data = sorted(data, key=lambda e: (e["date"], e.get("stime") or ""))
@@ -66,16 +87,17 @@ class Events:
             json.dump(data, f, indent=2)
 
     def _load_events(self) -> List[Dict[str, Any]]:
-        """Load and normalize events from the JSON file."""
+        """Load and normalize events from the database or JSON file."""
+        if _use_db():
+            import db
+            return db.load_events()
         file_path = os.path.join(_get_data_folder(), "events.json")
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        # Normalize to a list of event dicts
         if isinstance(data, dict):
-            data = [data]  # Wrap single object in a list
-        normalized_events = []
-        for event in data:
-            normalized_events.append({
+            data = [data]
+        return [
+            {
                 "date": event.get("date", ""),
                 "stime": event.get("stime"),
                 "etime": event.get("etime"),
@@ -83,11 +105,16 @@ class Events:
                 "solid": event.get("solid", False),
                 "allday": event.get("allday", False),
                 "color": event.get("color"),
-            })
-        return normalized_events
+            }
+            for event in data
+        ]
 
     def _edit_event(self, index: int, ndate=None, nstime=None, netime=None, nevent=None, nsolid=None, ncolor=None, nallday=None) -> None:
-        """Edit the event at the given sorted index. Only fields passed as non-None are updated."""
+        """Edit the event at the given sorted index. Only non-None fields are updated."""
+        if _use_db():
+            import db
+            db.edit_event(index, ndate=ndate, nstime=nstime, netime=netime, nevent=nevent, nsolid=nsolid, ncolor=ncolor, nallday=nallday)
+            return
         file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
         sorted_data = sorted(data, key=lambda e: (e["date"], e.get("stime") or ""))
@@ -97,7 +124,7 @@ class Events:
                 if ndate is not None:
                     data[i]["date"] = ndate
                 if nstime is not None:
-                    data[i]["stime"] = nstime 
+                    data[i]["stime"] = nstime
                 if netime is not None:
                     data[i]["etime"] = netime
                 if nevent is not None:
