@@ -37,6 +37,32 @@ def _sorted(events):
     return sorted(events, key=lambda e: (e["date"], e.get("stime") or ""))
 
 
+@app.route("/api/health", methods=["GET"])
+def health():
+    """Return diagnostic info: which env vars are set and whether the DB is reachable."""
+    db_url_set = bool(os.environ.get("DATABASE_URL"))
+    jwks_set = bool(os.environ.get("CLERK_JWKS_URL"))
+    origins = os.environ.get("ALLOWED_ORIGINS", "*")
+
+    db_ok = False
+    db_error = None
+    if db_url_set:
+        try:
+            import db as _db
+            _db.init_db()
+            db_ok = True
+        except Exception as e:
+            db_error = str(e)
+
+    return jsonify({
+        "DATABASE_URL_set": db_url_set,
+        "CLERK_JWKS_URL_set": jwks_set,
+        "ALLOWED_ORIGINS": origins,
+        "db_reachable": db_ok,
+        "db_error": db_error,
+    })
+
+
 @app.route("/api/events", methods=["GET"])
 def get_events():
     """Return all events for the authenticated user, sorted by date/time."""
