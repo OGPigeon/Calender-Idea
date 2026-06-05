@@ -35,7 +35,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
 
   useEffect(() => {
-    setTokenGetter(() => getToken);
+    setTokenGetter(getToken);
   }, [getToken]);
 
   useEffect(() => {
