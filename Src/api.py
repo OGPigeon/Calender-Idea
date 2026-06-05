@@ -14,7 +14,7 @@ from auth import get_user_id
 import sync
 
 app = Flask(__name__)
-_origins = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",")]
 CORS(app, origins=_origins, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 
