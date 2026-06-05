@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { SignedIn, SignedOut, SignIn, UserButton, useAuth } from "@clerk/clerk-react";
+import { dark } from "@clerk/themes";
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, addYears, subYears } from "date-fns";
 import { getWeekDays } from "./utils/dateUtils";
 import Sidebar from "./components/Sidebar";
@@ -152,7 +153,7 @@ export default function App() {
     <>
       <SignedOut>
         <div className="login-page">
-          <SignIn />
+          <SignIn appearance={darkMode ? { baseTheme: dark } : undefined} />
         </div>
       </SignedOut>
       <SignedIn>
