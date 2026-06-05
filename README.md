@@ -1,6 +1,6 @@
 # Calendar App
 
-**Live site:** https://calender-idea-git-main-ogpigeons-projects.vercel.app
+**Live site:** https://calender-idea-jrljktnbh-ogpigeons-projects.vercel.app/
 
 A personal calendar application with a React frontend and a Python/Flask backend. Supports two methods for keeping data in sync across devices: a PostgreSQL database (cloud) or a GitHub-backed JSON file (local).
 
