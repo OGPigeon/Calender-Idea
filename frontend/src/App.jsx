@@ -118,7 +118,8 @@ export default function App() {
       setModal(null);
       await load();
     } catch (err) {
-      showToast(err?.response?.data?.error || "Failed to save event");
+      const msg = err?.response?.data?.error;
+      showToast(typeof msg === "string" ? msg : "Failed to save event");
     }
   };
 
