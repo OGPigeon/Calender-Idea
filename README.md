@@ -1,8 +1,8 @@
 # Calendar App
 
-**Live site:** https://calender-idea-jrljktnbh-ogpigeons-projects.vercel.app/
+**Live site:** https://joseph1209.app
 
-A personal calendar application with a React frontend and a Python/Flask backend. Supports two methods for keeping data in sync across devices: a PostgreSQL database (cloud) or a GitHub-backed JSON file (local).
+A personal calendar application with a React frontend and a Python/Flask backend. Requires a Clerk account to sign in. Events are stored in PostgreSQL (cloud) or a local JSON file (dev).
 
 ## Features
 
@@ -16,53 +16,59 @@ A personal calendar application with a React frontend and a Python/Flask backend
 - **Mini calendar sidebar:** Click any date to jump directly to it
 - **Dark mode:** Toggle with the moon/sun icon; preference is saved across sessions
 - **Keyboard shortcuts:** `←` / `→` to navigate, `T` to jump to today
-- **GitHub sync:** Push and pull `Data/events.json` to/from a GitHub repo so your data is always up to date across devices
+- **PWA:** Installable on desktop and mobile
+- **Authentication:** Clerk sign-in gates the app; each user's events are stored separately
 
 ## Deployment
 
-| Layer    | Platform                                            |
-|----------|-----------------------------------------------------|
-| Frontend | [Vercel](https://calender-idea-git-main-ogpigeons-projects.vercel.app)         |
-| Backend  | [Render](https://render.com) (see `render.yaml`)    |
+| Layer    | Platform                                        |
+|----------|-------------------------------------------------|
+| Frontend | Vercel — `joseph1209.app`                       |
+| Backend  | Render — `calendar-api-epdq.onrender.com`       |
+| Auth     | Clerk — `clerk.joseph1209.app`                  |
+| Database | Render PostgreSQL                               |
 
 ## Tech Stack
 
-| Layer    | Technology                                      |
-|----------|-------------------------------------------------|
-| Frontend | React 19, Vite, date-fns, Axios                 |
-| Backend  | Python 3, Flask, Flask-CORS                     |
-| Storage  | PostgreSQL (cloud) or `Data/events.json` (local)|
+| Layer    | Technology                                              |
+|----------|---------------------------------------------------------|
+| Frontend | React 19, Vite, Clerk, date-fns, Axios, vite-plugin-pwa |
+| Backend  | Python 3, Flask, Flask-CORS, PyJWT                      |
+| Storage  | PostgreSQL (cloud) or `Data/events.json` (local dev)    |
 
 ## Project Structure
 
 ```
 .
 ├── Data/
-│   └── events.json          # Event storage (synced via GitHub)
+│   └── events.json           # Fallback event storage (local dev only)
 ├── Src/
-│   ├── Event.py             # Event model — CRUD, auto-switches between DB and JSON
-│   ├── System.py            # Business logic — solid/overlap checks
-│   ├── db.py                # PostgreSQL backend (used when DATABASE_URL is set)
-│   ├── sync.py              # Git pull/push logic for JSON-file sync
-│   ├── api.py               # Flask REST API
-│   └── Main.py              # CLI entry point
+│   ├── api.py                # Flask REST API
+│   ├── auth.py               # Clerk JWT verification
+│   ├── db.py                 # PostgreSQL backend (used when DATABASE_URL is set)
+│   ├── Event.py              # Event model — CRUD, auto-switches between DB and JSON
+│   ├── System.py             # Business logic — solid/overlap checks
+│   ├── sync.py               # Git pull/push logic for JSON-file sync
+│   └── Main.py               # CLI entry point
 ├── frontend/
 │   └── src/
-│       ├── App.jsx           # Root component, state, routing between views
+│       ├── App.jsx           # Root component, state, view switching
 │       ├── api.js            # Axios calls to the Flask API
+│       ├── main.jsx          # ClerkProvider setup
 │       └── components/       # DayView, WeekView, MonthView, YearView, EventModal, …
 ├── Tests/
-│   └── test_system_event.py  # Pytest test suite
+│   └── test_system_event.py  # Pytest suite
+├── render.yaml               # Render deployment config
 └── requirements.txt
 ```
 
-## Getting Started
+## Getting Started (local dev)
 
 ### Prerequisites
 
 - Python 3.10+
 - Node.js 18+
-- git (required for cross-device sync)
+- A [Clerk](https://clerk.com) account with an application created
 
 ### 1. Install Python dependencies
 
@@ -70,7 +76,26 @@ A personal calendar application with a React frontend and a Python/Flask backend
 pip install -r requirements.txt
 ```
 
-### 2. Start the backend
+### 2. Configure environment variables
+
+**Backend** — create `Src/.env` (or set in your shell):
+
+```
+# Leave unset to skip auth in local dev (all requests treated as user "local")
+CLERK_JWKS_URL=
+
+# Leave unset to use Data/events.json instead of Postgres
+DATABASE_URL=
+```
+
+**Frontend** — create `frontend/.env.local`:
+
+```
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...   # from Clerk dashboard → API Keys
+VITE_API_URL=                            # leave empty; Vite proxies /api to localhost:5001
+```
+
+### 3. Start the backend
 
 ```bash
 python Src/api.py
@@ -78,7 +103,7 @@ python Src/api.py
 
 The API runs on `http://localhost:5001`.
 
-### 3. Start the frontend
+### 4. Start the frontend
 
 ```bash
 cd frontend
@@ -86,52 +111,76 @@ npm install
 npm run dev
 ```
 
-The dev server runs on `http://localhost:5173` and proxies API calls to port 5001.
+The dev server runs on `http://localhost:5173` and proxies `/api` calls to port 5001.
 
-## Data Sync
+> **Auth in dev:** if `CLERK_JWKS_URL` is not set, the backend accepts all requests without a token and assigns them to the `"local"` user. You can skip Clerk setup entirely for local development.
 
-The app supports two storage backends. It automatically picks the right one based on whether `DATABASE_URL` is set.
+## Deploying
 
-### Method 1 — PostgreSQL (cloud / recommended for hosted use)
+### Backend (Render)
 
-When the `DATABASE_URL` environment variable is present (set automatically by Render), `db.py` takes over as the storage layer. Events are stored in a Postgres table and are instantly consistent — no manual sync required.
+The `render.yaml` defines the service. Set these environment variables in the Render dashboard:
 
-**Setup on Render:** add a Postgres database to your Render service and the `DATABASE_URL` env var is set for you.
+| Variable         | Value                                                         |
+|------------------|---------------------------------------------------------------|
+| `DATABASE_URL`   | Internal URL from your Render PostgreSQL instance             |
+| `CLERK_JWKS_URL` | JWKS endpoint from Clerk dashboard (e.g. `https://clerk.yourdomain.com/.well-known/jwks.json`) |
+| `ALLOWED_ORIGINS`| Your frontend domain (e.g. `https://yourdomain.com`)         |
 
-### Method 2 — GitHub file sync (local / self-hosted)
+### Frontend (Vercel)
 
-Without `DATABASE_URL`, events live in `Data/events.json` and can be synced to a private GitHub repository via `sync.py`.
+Set these environment variables in the Vercel dashboard before deploying:
 
-**First-time setup:**
+| Variable                    | Value                                       |
+|-----------------------------|---------------------------------------------|
+| `VITE_CLERK_PUBLISHABLE_KEY`| `pk_live_...` from Clerk dashboard          |
+| `VITE_API_URL`              | `https://your-render-service.onrender.com`  |
 
-```bash
-git remote add origin https://github.com/your-username/your-repo.git
-git push -u origin main
-```
+Set the **Root Directory** to `frontend` and the **Output Directory** to `dist`.
 
-**Syncing:** use the `↓` and `↑` buttons in the toolbar:
+### Clerk custom domain
 
-| Button | Action |
-|--------|--------|
-| `↓` | **Pull** — fetches the latest `events.json` from GitHub and refreshes the calendar |
-| `↑` | **Push** — commits the current `events.json` with a timestamp and pushes to GitHub |
+To use a custom domain with Clerk, add the following DNS records to your domain:
 
-On a new device, clone the repo, run the app, and hit `↓` to get the latest data.
+| Name              | Type  | Value                                 |
+|-------------------|-------|---------------------------------------|
+| `accounts`        | CNAME | `accounts.clerk.services`             |
+| `clerk`           | CNAME | `frontend-api.clerk.services`         |
+| `clk._domainkey`  | CNAME | `dkim1.<your-instance>.clerk.services`|
+| `clk2._domainkey` | CNAME | `dkim2.<your-instance>.clerk.services`|
+| `clkmail`         | CNAME | `mail.<your-instance>.clerk.services` |
 
-> **Note:** Requires git credentials (SSH key or stored HTTPS token). If push fails, verify your remote is set up and you have write access.
+The exact values are provided in Clerk dashboard → Domains → DNS Records.
+
+## Storage backends
+
+The backend automatically selects a storage layer based on environment variables.
+
+### PostgreSQL (recommended for production)
+
+When `DATABASE_URL` is set, `db.py` stores all events in a Postgres table. Each user's events are isolated by their Clerk user ID. The table is created automatically on first request.
+
+### JSON file (local dev)
+
+Without `DATABASE_URL`, events are stored in `Data/events.json`. All requests share the same file regardless of user. This is suitable for local development only — Render's filesystem is ephemeral and writes will not survive a redeploy.
+
+The toolbar `↓` / `↑` buttons can pull and push this file to a GitHub repository as a manual sync mechanism.
 
 ## API Reference
 
+All endpoints require a valid Clerk JWT in the `Authorization: Bearer <token>` header. If `CLERK_JWKS_URL` is not set (dev mode), the header is optional.
+
 | Method | Endpoint                          | Description                              |
 |--------|-----------------------------------|------------------------------------------|
-| GET    | `/api/events`                     | Return all events, sorted by date/time   |
+| GET    | `/api/health`                     | Diagnostic info — env vars, DB status    |
+| GET    | `/api/events`                     | Return all events for the current user   |
 | POST   | `/api/events`                     | Create a new event                       |
 | PUT    | `/api/events/<idx>`               | Update an event by its sorted index      |
 | DELETE | `/api/events/<idx>`               | Delete an event by its sorted index      |
 | GET    | `/api/check-solid?date=`          | Check if a locked event exists on a date |
 | GET    | `/api/check-overlap?date=&stime=` | Check for a time conflict                |
-| POST   | `/api/sync/pull`                  | Pull latest events from GitHub           |
-| POST   | `/api/sync/push`                  | Commit and push events to GitHub         |
+| POST   | `/api/sync/pull`                  | Pull latest events.json from GitHub      |
+| POST   | `/api/sync/push`                  | Commit and push events.json to GitHub    |
 
 ### Event schema
 
