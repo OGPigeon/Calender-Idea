@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { SignedIn, SignedOut, SignIn, UserButton, useAuth } from "@clerk/clerk-react";
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, addYears, subYears } from "date-fns";
 import { getWeekDays } from "./utils/dateUtils";
 import Sidebar from "./components/Sidebar";
@@ -8,7 +9,7 @@ import DayView from "./components/DayView";
 import YearView from "./components/YearView";
 import EventModal from "./components/EventModal";
 import EventPopover from "./components/EventPopover";
-import { fetchEvents, createEvent, updateEvent, deleteEvent, syncPull, syncPush } from "./api";
+import { fetchEvents, createEvent, updateEvent, deleteEvent, syncPull, syncPush, setTokenGetter } from "./api";
 
 function Toast({ msg, onDone }) {
   useEffect(() => {
@@ -19,6 +20,7 @@ function Toast({ msg, onDone }) {
 }
 
 export default function App() {
+  const { getToken } = useAuth();
   const today = new Date();
   const [view, setView] = useState("month");
   const [current, setCurrent] = useState(today);
@@ -30,6 +32,10 @@ export default function App() {
   const [popover, setPopover] = useState(null);
   const [toast, setToast] = useState(null);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
+
+  useEffect(() => {
+    setTokenGetter(() => getToken);
+  }, [getToken]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -143,6 +149,13 @@ export default function App() {
   }, [view, modal, popover]);
 
   return (
+    <>
+      <SignedOut>
+        <div className="login-page">
+          <SignIn />
+        </div>
+      </SignedOut>
+      <SignedIn>
     <div className="app">
       <Sidebar
         miniMonth={miniMonth}
@@ -193,6 +206,7 @@ export default function App() {
             type: "new",
             initial: { date: format(selectedDate || today, "yyyy-MM-dd"), stime: "", etime: "", event: "", solid: false, allday: false, color: "blue" }
           })}>+</button>
+          <UserButton />
         </div>
 
         {view === "month" && (
@@ -237,5 +251,7 @@ export default function App() {
 
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
+      </SignedIn>
+    </>
   );
 }

@@ -1,6 +1,8 @@
 # Calendar App
 
-A personal calendar application with a React frontend and a Python/Flask backend. Events are stored in a JSON file that can be synced across devices via GitHub.
+**Live site:** https://calender-idea-git-main-ogpigeons-projects.vercel.app
+
+A personal calendar application with a React frontend and a Python/Flask backend. Supports two methods for keeping data in sync across devices: a PostgreSQL database (cloud) or a GitHub-backed JSON file (local).
 
 ## Features
 
@@ -16,13 +18,20 @@ A personal calendar application with a React frontend and a Python/Flask backend
 - **Keyboard shortcuts:** `←` / `→` to navigate, `T` to jump to today
 - **GitHub sync:** Push and pull `Data/events.json` to/from a GitHub repo so your data is always up to date across devices
 
+## Deployment
+
+| Layer    | Platform                                            |
+|----------|-----------------------------------------------------|
+| Frontend | [Vercel](https://calender-idea-git-main-ogpigeons-projects.vercel.app)         |
+| Backend  | [Render](https://render.com) (see `render.yaml`)    |
+
 ## Tech Stack
 
-| Layer    | Technology                          |
-|----------|-------------------------------------|
-| Frontend | React 19, Vite, date-fns, Axios     |
-| Backend  | Python 3, Flask, Flask-CORS         |
-| Storage  | `Data/events.json` (flat JSON file) |
+| Layer    | Technology                                      |
+|----------|-------------------------------------------------|
+| Frontend | React 19, Vite, date-fns, Axios                 |
+| Backend  | Python 3, Flask, Flask-CORS                     |
+| Storage  | PostgreSQL (cloud) or `Data/events.json` (local)|
 
 ## Project Structure
 
@@ -31,9 +40,10 @@ A personal calendar application with a React frontend and a Python/Flask backend
 ├── Data/
 │   └── events.json          # Event storage (synced via GitHub)
 ├── Src/
-│   ├── Event.py             # Event model — CRUD operations on the JSON file
+│   ├── Event.py             # Event model — CRUD, auto-switches between DB and JSON
 │   ├── System.py            # Business logic — solid/overlap checks
-│   ├── sync.py              # Git pull/push logic for cross-device sync
+│   ├── db.py                # PostgreSQL backend (used when DATABASE_URL is set)
+│   ├── sync.py              # Git pull/push logic for JSON-file sync
 │   ├── api.py               # Flask REST API
 │   └── Main.py              # CLI entry point
 ├── frontend/
@@ -78,29 +88,37 @@ npm run dev
 
 The dev server runs on `http://localhost:5173` and proxies API calls to port 5001.
 
-## Cross-Device Sync
+## Data Sync
 
-Events are stored in `Data/events.json` and can be synced to a private GitHub repository so your data stays consistent across all your devices.
+The app supports two storage backends. It automatically picks the right one based on whether `DATABASE_URL` is set.
 
-### First-time setup
+### Method 1 — PostgreSQL (cloud / recommended for hosted use)
+
+When the `DATABASE_URL` environment variable is present (set automatically by Render), `db.py` takes over as the storage layer. Events are stored in a Postgres table and are instantly consistent — no manual sync required.
+
+**Setup on Render:** add a Postgres database to your Render service and the `DATABASE_URL` env var is set for you.
+
+### Method 2 — GitHub file sync (local / self-hosted)
+
+Without `DATABASE_URL`, events live in `Data/events.json` and can be synced to a private GitHub repository via `sync.py`.
+
+**First-time setup:**
 
 ```bash
 git remote add origin https://github.com/your-username/your-repo.git
 git push -u origin main
 ```
 
-### Syncing
-
-Use the `↓` and `↑` buttons in the toolbar:
+**Syncing:** use the `↓` and `↑` buttons in the toolbar:
 
 | Button | Action |
 |--------|--------|
-| `↓` | **Pull** — fetches the latest events from GitHub and refreshes the calendar |
+| `↓` | **Pull** — fetches the latest `events.json` from GitHub and refreshes the calendar |
 | `↑` | **Push** — commits the current `events.json` with a timestamp and pushes to GitHub |
 
 On a new device, clone the repo, run the app, and hit `↓` to get the latest data.
 
-> **Note:** Sync requires git credentials to be configured (SSH key or a stored HTTPS token). If push fails, check that your remote is set up and you have write access.
+> **Note:** Requires git credentials (SSH key or stored HTTPS token). If push fails, verify your remote is set up and you have write access.
 
 ## API Reference
 

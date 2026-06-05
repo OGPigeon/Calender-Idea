@@ -35,15 +35,16 @@ def _use_db() -> bool:
 
 
 class Events:
-    """A collection of events, loaded from a JSON file."""
+    """A collection of events, loaded from a JSON file or database."""
 
-    def __init__(self, date: str, stime: str, etime: str, event: str, solid: bool):
+    def __init__(self, date: str, stime: str, etime: str, event: str, solid: bool, user_id: str = "local"):
         self.stime = datetime.strptime(stime, "%H:%M") if stime else None
         self.etime = datetime.strptime(etime, "%H:%M") if etime else None
         self.date = datetime.strptime(
             date, "%Y-%m-%d").date().isoformat() if date else None
         self.event = event
         self.solid = solid
+        self.user_id = user_id
 
     def __str__(self):
         "returns event details in a readable format"
@@ -55,7 +56,7 @@ class Events:
         etime_str = self.etime.strftime("%H:%M") if self.etime else None
         if _use_db():
             import db
-            db.create_event(self.date, stime_str, etime_str, self.event, self.solid, color, allday)
+            db.create_event(self.user_id, self.date, stime_str, etime_str, self.event, self.solid, color, allday)
             return
         file_path = os.path.join(_get_data_folder(), "events.json")
         new_event = {
@@ -76,7 +77,7 @@ class Events:
         """Delete the event at the given sorted index."""
         if _use_db():
             import db
-            db.delete_event(index)
+            db.delete_event(self.user_id, index)
             return
         file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()
@@ -90,7 +91,7 @@ class Events:
         """Load and normalize events from the database or JSON file."""
         if _use_db():
             import db
-            return db.load_events()
+            return db.load_events(self.user_id)
         file_path = os.path.join(_get_data_folder(), "events.json")
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -113,7 +114,7 @@ class Events:
         """Edit the event at the given sorted index. Only non-None fields are updated."""
         if _use_db():
             import db
-            db.edit_event(index, ndate=ndate, nstime=nstime, netime=netime, nevent=nevent, nsolid=nsolid, ncolor=ncolor, nallday=nallday)
+            db.edit_event(self.user_id, index, ndate=ndate, nstime=nstime, netime=netime, nevent=nevent, nsolid=nsolid, ncolor=ncolor, nallday=nallday)
             return
         file_path = os.path.join(_get_data_folder(), "events.json")
         data = self._load_events()

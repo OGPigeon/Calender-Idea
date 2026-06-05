@@ -10,30 +10,49 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from Event import Events
 from System import System
+from auth import get_user_id
 import sync
 
 app = Flask(__name__)
 _origins = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
-CORS(app, origins=_origins)
+CORS(app, origins=_origins, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 
-def _load():
-    loader = Events("", "", "", "", False)
+def _require_user():
+    """Return the authenticated user_id, or abort with 401."""
+    uid = get_user_id(request)
+    if uid is None:
+        return None, (jsonify({"error": "Unauthorized"}), 401)
+    return uid, None
+
+
+def _load(user_id: str):
+    """Load all events for the given user."""
+    loader = Events("", "", "", "", False, user_id)
     return loader._load_events()
 
 
 def _sorted(events):
+    """Sort events by date then start time."""
     return sorted(events, key=lambda e: (e["date"], e.get("stime") or ""))
 
 
 @app.route("/api/events", methods=["GET"])
 def get_events():
-    return jsonify(_sorted(_load()))
+    """Return all events for the authenticated user, sorted by date/time."""
+    uid, err = _require_user()
+    if err:
+        return err
+    return jsonify(_sorted(_load(uid)))
 
 
 @app.route("/api/events", methods=["POST"])
 def create_event():
     """Create a new event from the request body and save it."""
+    uid, err = _require_user()
+    if err:
+        return err
+
     body = request.json
     date = body.get("date", "").strip()
     stime = body.get("stime", "").strip()
@@ -47,11 +66,11 @@ def create_event():
         return jsonify({"error": "date and event are required"}), 400
 
     try:
-        new_event = Events(date, stime, etime, event, solid)
+        new_event = Events(date, stime, etime, event, solid, uid)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    events = _load()
+    events = _load(uid)
     sys_obj = System(events)
 
     if sys_obj.is_solid(date):
@@ -61,7 +80,7 @@ def create_event():
 
     new_event._create_event(color=color, allday=allday)
 
-    all_events = _sorted(_load())
+    all_events = _sorted(_load(uid))
     created = next((e for e in all_events if e["date"] == date and e["event"] == event), None)
     return jsonify({"overlap": overlap, "event": created}), 201
 
@@ -69,12 +88,16 @@ def create_event():
 @app.route("/api/events/<int:idx>", methods=["PUT"])
 def update_event(idx):
     """Update an existing event by its sorted index."""
+    uid, err = _require_user()
+    if err:
+        return err
+
     body = request.json
-    events = _sorted(_load())
+    events = _sorted(_load(uid))
     if idx < 0 or idx >= len(events):
         return jsonify({"error": "index out of range"}), 404
 
-    loader = Events("", "", "", "", False)
+    loader = Events("", "", "", "", False, uid)
     loader._edit_event(
         idx,
         ndate=body.get("date") or None,
@@ -86,31 +109,44 @@ def update_event(idx):
         nallday=bool(body["allday"]) if "allday" in body else None,
     )
 
-    return jsonify(_sorted(_load())[idx])
+    return jsonify(_sorted(_load(uid))[idx])
 
 
 @app.route("/api/events/<int:idx>", methods=["DELETE"])
 def delete_event(idx):
-    events = _sorted(_load())
+    """Delete an event by its sorted index."""
+    uid, err = _require_user()
+    if err:
+        return err
+
+    events = _sorted(_load(uid))
     if idx < 0 or idx >= len(events):
         return jsonify({"error": "index out of range"}), 404
-    loader = Events("", "", "", "", False)
+    loader = Events("", "", "", "", False, uid)
     loader._delete_event(idx)
     return jsonify({"deleted": idx})
 
 
 @app.route("/api/check-solid", methods=["GET"])
 def check_solid():
+    """Check if a locked event exists on a given date for the authenticated user."""
+    uid, err = _require_user()
+    if err:
+        return err
     date = request.args.get("date", "")
-    sys_obj = System(_load())
+    sys_obj = System(_load(uid))
     return jsonify({"solid": sys_obj.is_solid(date)})
 
 
 @app.route("/api/check-overlap", methods=["GET"])
 def check_overlap():
+    """Check for a time conflict on a given date for the authenticated user."""
+    uid, err = _require_user()
+    if err:
+        return err
     date = request.args.get("date", "")
     stime = request.args.get("stime", "")
-    sys_obj = System(_load())
+    sys_obj = System(_load(uid))
     return jsonify({"overlap": sys_obj.is_overlapped(date, stime)})
 
 
